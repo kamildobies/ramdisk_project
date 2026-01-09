@@ -414,6 +414,28 @@ static int my_fs_utimens(const char *path, const struct timespec tv[2]) {
     return 0;
 }
 
+static int my_fs_statfs(const char *path, struct statvfs *stbuf) {
+    memset(stbuf, 0, sizeof(struct statvfs));
+
+    stbuf->f_bsize = 4096;
+    stbuf->f_frsize = 4096;
+    stbuf->f_blocks = MAX_FILES;
+    stbuf->f_bfree = 0;
+    stbuf->f_bavail = 0;
+    
+    int free_count = 0;
+    for (int i = 0; i < MAX_FILES; i++) {
+        if (file_table[i].name[0] == '\0') free_count++;
+    }
+    
+    stbuf->f_bfree = free_count;
+    stbuf->f_bavail = free_count;
+    stbuf->f_namemax = 255;
+
+    log_msg(LOG_DEBUG, "statfs: reporting %d free slots out of %d", free_count, MAX_FILES);
+    return 0;
+}
+
 static struct fuse_operations my_fs_ops = {
     .getattr   = my_fs_getattr,
     .readdir   = my_fs_readdir,
@@ -425,6 +447,7 @@ static struct fuse_operations my_fs_ops = {
     .truncate  = my_fs_truncate,
     .unlink    = my_fs_unlink,   
     .utimens   = my_fs_utimens,
+    .statfs    = my_fs_statfs,
 };
 
 
